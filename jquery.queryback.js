@@ -124,17 +124,24 @@
             // Remove line feeds, carriage returns, and white space from beginning and end of lines
             var content = styles.replace(/^[\n\r\s]+|[\n\r\s]+$/gm, '');
 
-            var re = /\/\*\sName:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+\(([a-z0-9\s-:]+)\)\s*(?:and)*\s*/gim;
+            //var re = /\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+\(([a-z0-9\s-:]+)\)\s*(?:and)*\s*/gim;
+            var re = /(\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+.+{)+/gmi;
 
-            // TODO: Change of plans!  First we'll grab from /* Name...  to ) { using exec
-            // and then in the loop we'll use match on the one line with the groups we need
-            var myArray = re.exec(content);
+            var mediaQueries = content.match(re);
 
-            if (myArray != null) {
-                for (var i = 0, len = myArray.length; i < len; i++) {
-                    console.log("myArray[" + i + "] = " + myArray[i]);
-                }
+            if (mediaQueries.length > 0) {
+                // TODO: loop through queries and pass to parseMediaQuery()
             }
+
+            return;
+
+        },
+
+        /**
+         * Responsible for extracting name and boundaries from media query
+         * @param  {string} mediaQuery Media Query block
+         */
+        parseMediaQuery: function (mediaQuery) {
 
         },
 
@@ -168,9 +175,9 @@
             .done(function(data, textStatus, jqXHR) {
 
                 this.combinedStyles += data;
-                this.externalStylesheetCount -= 1;
+                var externalStylesheetCount = this.externalStylesheetCount -= 1;
 
-                if (this.externalStylesheetCount === 0) {
+                if (externalStylesheetCount === 0) {
                     this.parseStyles();
                 }
 
