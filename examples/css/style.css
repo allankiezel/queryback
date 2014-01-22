@@ -1,0 +1,6 @@
+/* Name: small */
+@media screen and (min-width: 420px) and (max-width: 768px) {
+    .dummy-style {
+        background: none;
+    }
+}
