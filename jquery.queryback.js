@@ -25,19 +25,22 @@
 
         version: '0.1',
 
+        combinedStyles: null, // Combined styles of all embedded and external stylesheets
+
         defaults: {
             selector: 'link, style'
         },
 
-        settings: null, // Combination of defaults merge with passed in options
-
-        combinedStyles: null, // Combined styles of all embedded and external stylesheets
-
-        externalStylesheetCount: 0, // Stores external stylesheet count which helps with aysnc requests progress
-
         el: null, // HTMLElement of selected element
 
         $el: null, // jQuery wrapped element
+
+        externalStylesheetCount: 0, // Stores external stylesheet count which helps with aysnc requests progress
+
+        mediaQueries: [], // Array of media queries objects indexed by name
+
+        settings: null, // Combination of defaults merge with passed in options
+
 
         /**
          * Intializes the stylesheet parsing, etc.
@@ -52,13 +55,18 @@
             this.cleanup();
 
             this.el = el;
+
             this.$el = $(el);
 
             // Let's get this parsing started!
             try {
+
                 this.startStylesheetProcessing($(this.settings.selector));
+
             } catch (error) {
+
                 console.log(error);
+
             }
 
         },
@@ -83,6 +91,7 @@
                 if ($stylesheet.tagName === 'LINK') { // Stylesheet is external
 
                     externalStylesheetCount += 1;
+
                     externalStylesheets.push($stylesheet.href);
 
                 } else { // Stylesheet is embedded
@@ -101,8 +110,11 @@
             if (externalStylesheetCount > 0 || stylesheetContent !== '') {
 
                 if (externalStylesheetCount === 0) {
+
                     this.parseStyles(stylesheetContent);
+
                     return;
+
                 }
 
                 // Retrieve the remote stylesheets
@@ -124,13 +136,38 @@
             // Remove line feeds, carriage returns, and white space from beginning and end of lines
             var content = styles.replace(/^[\n\r\s]+|[\n\r\s]+$/gm, '');
 
+            /*
+             * Sample
+             */
+            //body {
+            //font-size: 16px;
+            //}
+            ///* Queryback Name: iphone */
+            //@media screen and (min-width: 360px) {
+            //body {
+            //font-size: 80%;
+            //}
+            //}
+            ///* Queryback Name: small */
+            //@media screen and (min-width: 420px) and (max-width: 768px) {
+            //.dummy-style {
+            //background: none;
+            //}
+            //}
+
             //var re = /\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+\(([a-z0-9\s-:]+)\)\s*(?:and)*\s*/gim;
             var re = /(\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+.+{)+/gmi;
 
             var mediaQueries = content.match(re);
 
             if (mediaQueries.length > 0) {
-                // TODO: loop through queries and pass to parseMediaQuery()
+
+                for (var i = 0, len = mediaQueries.length; i < len; i++) {
+
+                    this.parseMediaQuery(mediaQueries[i]);
+
+                }
+
             }
 
             return;
@@ -139,9 +176,32 @@
 
         /**
          * Responsible for extracting name and boundaries from media query
-         * @param  {string} mediaQuery Media Query block
+         *
+         * @param  {string}  mediaQuery Media Query block
+         * @return {boolean}            Returns false if media query is not formatted correctly
+         * @todo Add to an errors array if part of the query isn't formatted
          */
         parseMediaQuery: function (mediaQuery) {
+
+            var queryName;
+
+            // Extract the name of the query
+            var queryNameRe = /\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\//;
+
+            var queryNameResult = queryNameRe.exec(mediaQuery);
+
+            // Continue if we have a properly formatted name for the media query
+            if (queryNameResult !== null) {
+
+                queryName = queryNameResult[1];
+
+            }
+
+            return false;
+
+            // Extract the media queries and screens
+
+            // Setup callbacks for each set of queries
 
         },
 
@@ -175,18 +235,18 @@
             .done(function(data, textStatus, jqXHR) {
 
                 this.combinedStyles += data;
+
                 var externalStylesheetCount = this.externalStylesheetCount -= 1;
 
                 if (externalStylesheetCount === 0) {
+
                     this.parseStyles();
+
                 }
 
             })
             .fail(function() {
-                console.log("error");
-            })
-            .always(function() {
-                //this.externalStylesheetCount +
+
             });
 
         },
@@ -197,8 +257,12 @@
         cleanup: function () {
 
             this.el = null;
+
             this.$el = null;
+
             this.combinedStyles = null;
+
+            // Reset external stylesheet count
             this.externalStylesheetCount = 0;
 
         }
@@ -211,8 +275,11 @@
 
         // Loop through all selected elements (ie: document) and run through Queryback
         return this.each(function() {
+
             Queryback.init.call(Queryback, this);
+
             return this;
+
         });
 
     };
