@@ -25,6 +25,8 @@
 
         version: '0.1',
 
+        bodyFontSize: '16px', // Font size of body element - used for em conversion
+
         combinedStyles: null, // Combined styles of all embedded and external stylesheets
 
         defaults: {
@@ -194,6 +196,32 @@
             if (queryNameResult !== null) {
 
                 queryName = queryNameResult[1];
+
+            }
+
+            var subQueries = mediaQuery.split(',');
+
+            for (var i = 0, len = subQueries.length; i < len; i++) {
+
+                // Extract the device (if any?) and thresholds
+                var thresholdRe = /\s([a-zA-Z]+)[a-zA-Z\s]+\(([a-zA-Z0-9:\-\s]+?)\)[a-zA-Z\s,]*(?:\(([a-zA-Z0-9:\-\s]+?)\)[a-zA-Z\s,]*){0,1}/gi;
+
+                var queryArray;
+                while ((queryArray = thresholdRe.exec(subQueries[i])) !== null) {
+
+                    /* Sample array
+                    0: " screen and (min-width: 768px) and (max-width: 1024px) "
+                    1: "screen"
+                    2: "min-width: 768px"
+                    3: "max-width: 1024px"
+                    */
+
+                    continue;
+                    // create and pass to parseSubQuery() method
+                    // method should check for array length > 3 and also if array[4] is not undefined
+                    // method should store under name object (?) need to think about this a bit for best iteration on resize
+
+                }
 
             }
 
