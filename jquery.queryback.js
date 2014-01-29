@@ -39,7 +39,7 @@
 
         externalStylesheetCount: 0, // Stores external stylesheet count which helps with aysnc requests progress
 
-        mediaQueries: [], // Array of media queries objects indexed by name (properties: min, max, mediaType)
+        mediaQueries: [], // Array of media queries objects indexed by name (properties: name, min, max, mediaType)
 
         regex: { // Regular expressions used throughout library to parse media query components
             media: /(\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+.+{)+/gmi,
@@ -184,12 +184,13 @@
                 var subQuery = subQueries[i];
 
                 var mediaQueryObj = {
+                    name: queryName,
                     mediaType: subQuery.split('(')[0].match(this.regex.mediaType) && RegExp.$2 || 'all',
                     minWidth: subQuery.match(this.regex.minWidth) && parseFloat(RegExp.$1) + (RegExp.$2 || ''),
                     maxWidth: subQuery.match(this.regex.maxWidth) && parseFloat(RegExp.$1) + (RegExp.$2 || '')
                 };
 
-                this.generateMediaQueryCallback(queryName, mediaQueryObj);
+                this.generateMediaQueryCallback(mediaQueryObj);
 
             }
 
@@ -198,15 +199,15 @@
         /**
          * Generate callbacks from sub-query array
          *
-         * @param  {string} name       User privided name for media query callback
          * @param  {object} mediaQuery Contains media query information (e.g. media type, min-width, etc.)
          */
-        generateMediaQueryCallback: function (name, mediaQuery) {
+        generateMediaQueryCallback: function (mediaQuery) {
 
             /* Sample object
             {
-                mediaType: "screen"
-                minWidth: "768px"
+                name: "ipad",
+                mediaType: "screen",
+                minWidth: "768px",
                 maxWidth: "1024px"
             }
             */
