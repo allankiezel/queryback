@@ -41,6 +41,14 @@
 
         mediaQueries: [], // Array of media queries objects indexed by name (properties: min, max, mediaType)
 
+        regex: { // Regular expressions used throughout library to parse media query components
+            media: /(\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+.+{)+/gmi,
+            queryName: /\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\n*/,
+            mediaType: /(?:@media\s+)(only\s+)?([a-zA-Z]+)\s?/,
+            minWidth: /\(\s*min\-width\s*:\s*(\s*[0-9\.]+)(px|em)\s*\)/,
+            maxWidth: /\(\s*max\-width\s*:\s*(\s*[0-9\.]+)(px|em)\s*\)/
+        },
+
         settings: null, // Combination of defaults merge with passed in options
 
 
@@ -138,9 +146,9 @@
             // Remove line feeds, carriage returns, and white space from beginning and end of lines
             var content = styles.replace(/^[\n\r\s]+|[\n\r\s]+$/gm, '');
 
-            var re = /(\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\/\s*[\n\r]+@media[\sa-zA-Z]+.+{)+/gmi;
+            var mediaRegex = this.regex.media;
 
-            var mediaQueries = content.match(re);
+            var mediaQueries = content.match(mediaRegex);
 
             if (mediaQueries.length > 0) {
 
@@ -152,8 +160,6 @@
 
             }
 
-            return;
-
         },
 
         /**
@@ -164,44 +170,26 @@
          */
         parseMediaQuery: function (mediaQuery) {
 
-            var queryName;
+            var queryNameRegex = this.regex.queryName;
 
-            // Extract the name of the query
-            var queryNameRe = /\/\*\sQueryback Name:\s([A-Za-z0-9_-]+)\s\*\//;
+            var queryName = queryNameRegex.exec(mediaQuery)[1];
 
-            var queryNameResult = queryNameRe.exec(mediaQuery);
-
-            // Continue if we have a properly formatted name for the media query
-            if (queryNameResult !== null) {
-
-                queryName = queryNameResult[1];
-
-            }
+            mediaQuery = mediaQuery.replace(queryNameRegex, '');
 
             // Split comma-separated expressions, because I'm no regex expert
             var subQueries = mediaQuery.split(',');
 
             for (var i = 0, len = subQueries.length; i < len; i++) {
 
-                // Extract the media type and expression
-                var thresholdRe = /\s([a-zA-Z]*)[a-zA-Z\s]+\(([a-zA-Z0-9:\-\s]+?)\)[a-zA-Z\s,]*(?:\(([a-zA-Z0-9:\-\s]+?)\)[a-zA-Z\s,]*){0,1}/gi;
+                var subQuery = subQueries[i];
 
-                var queryArray;
+                var mediaQueryObj = {
+                    mediaType: subQuery.split('(')[0].match(this.regex.mediaType) && RegExp.$2 || 'all',
+                    minWidth: subQuery.match(this.regex.minWidth) && parseFloat(RegExp.$1) + (RegExp.$2 || ''),
+                    maxWidth: subQuery.match(this.regex.maxWidth) && parseFloat(RegExp.$1) + (RegExp.$2 || '')
+                };
 
-                while ((queryArray = thresholdRe.exec(subQueries[i])) !== null) {
-
-                    // Default to 'all' if no media type was set
-                    if (queryArray[1] === 'and') {
-
-                        queryArray[1] = 'all';
-
-                    }
-
-                    this.generateMediaQueryCallback(queryName, queryArray);
-
-                    continue;
-
-                }
+                this.generateMediaQueryCallback(queryName, mediaQueryObj);
 
             }
 
@@ -210,61 +198,20 @@
         /**
          * Generate callbacks from sub-query array
          *
-         * @param  {string} name     User privided name for media query callback
-         * @param  {array}  subQuery Contains media query information (e.g. media type, etc.)
+         * @param  {string} name       User privided name for media query callback
+         * @param  {object} mediaQuery Contains media query information (e.g. media type, min-width, etc.)
          */
         generateMediaQueryCallback: function (name, mediaQuery) {
 
-            /* Sample arrays
-            0: " screen and (min-width: 768px) and (max-width: 1024px) "
-            1: "screen"
-            2: "min-width: 768px"
-            3: "max-width: 1024px"
-
-            0: " screen and (min-width: 768px) and (max-width: 1024px) "
-            1: "screen"
-            2: "max-width: 768px"
-            3: undefined
+            /* Sample object
+            {
+                mediaType: "screen"
+                minWidth: "768px"
+                maxWidth: "1024px"
+            }
             */
 
-            var mediaQueryObj = {};
-
-            if (typeof this.mediaQueries[name] === 'undefined') {
-                this.mediaQueries[name] = [];
-            }
-
-            mediaQueryObj.mediaType = mediaQuery[1];
-
-            // Check if first part of expression is min or max
-            // TODO: Use regex to extract measurement
-            // TODO: Create separate method to handle min/max check and measurement parsing
-            if (/min/i.test(mediaQuery[2])) {
-
-                mediaQueryObj.min = mediaQuery[2];
-
-            } else {
-
-                mediaQueryObj.max = mediaQuery[2];
-
-            }
-
-            // Determine if a min AND max were used in the expression
-            if (mediaQuery.length > 3 && mediaQuery[3] !== undefined) {
-
-                // TODO: Use newly created method in TODO above to check this
-                if (/min/i.test(mediaQuery[3])) {
-
-                    mediaQueryObj.min = mediaQuery[3];
-
-                } else {
-
-                    mediaQueryObj.max = mediaQuery[3];
-
-                }
-
-            }
-
-            this.mediaQueries[name].push(mediaQueryObj);
+            this.mediaQueries.push(mediaQuery);
 
         },
 
